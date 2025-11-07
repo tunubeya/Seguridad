@@ -37,5 +37,22 @@ namespace Security.Controllers
             var hospital = await _service.CreateHospital(dto);
             return CreatedAtAction(nameof(GetOne), new { id = hospital.Id }, hospital);
         }
+        [HttpPut("{id:guid}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateHospital([FromBody] UpdateHospitalDto dto, Guid id)
+        {
+            if (!ModelState.IsValid) return ValidationProblem(ModelState);
+            var hospital = await _service.UpdateHospital(dto, id);
+            return CreatedAtAction(nameof(GetOne), new { id = hospital.Id }, hospital);
+        }
+
+        [HttpDelete("{id:guid}")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> DeleteHospital(Guid id)
+        {
+            if (!ModelState.IsValid) return ValidationProblem(ModelState);
+            await _service.DeleteHospital(id);
+            return NoContent();
+        }
     }
 }

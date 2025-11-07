@@ -1,20 +1,20 @@
 services:
   db:
     image: postgres:16
-    container_name: vet_pg
+    container_name: security_pg
     restart: unless-stopped
     environment:
-      POSTGRES_DB: vetdb
-      POSTGRES_USER: vetuser
+      POSTGRES_DB: securitydb
+      POSTGRES_USER: securityuser
       POSTGRES_PASSWORD: supersecret
     ports:
       - "5432:5432"
     volumes:
-      - vet_data:/var/lib/postgresql/data
+      - security_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vetuser -d vetdb"]
+      test: ["CMD-SHELL", "pg_isready -U securityuser -d securitydb"]
       interval: 5s
       timeout: 3s
       retries: 10
 volumes:
-  vet_data:
+  security_data:

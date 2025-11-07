@@ -28,9 +28,10 @@ builder.Services
             ValidateLifetime = true,
             ValidateIssuerSigningKey=true,
             ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audienice"],
+            ValidAudience = jwt["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
             RoleClaimType = ClaimTypes.Role,
+            ClockSkew = TimeSpan.Zero
         };
     });
 builder.Services.AddAuthorization(options =>
