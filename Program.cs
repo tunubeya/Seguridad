@@ -6,8 +6,13 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using DotNetEnv;
+
+//dotnet add package DotNetEnv
+
 
 var builder = WebApplication.CreateBuilder(args);
+Env.Load();
 
 var port = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrEmpty(port))
@@ -25,8 +30,10 @@ builder.Services.AddCors(opt =>
         .AllowAnyMethod());
 });
 
-var jwt = builder.Configuration.GetSection("Jwt");
-var keyBytes = Convert.FromBase64String(jwt["Key"]!);
+var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
+var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER");
+var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE");
+var keyBytes = Convert.FromBase64String(jwtKey!);
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -38,8 +45,8 @@ builder.Services
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey=true,
-            ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audience"],
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
             RoleClaimType = ClaimTypes.Role,
             ClockSkew = TimeSpan.Zero
@@ -49,12 +56,25 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", p => p.RequireRole("Admin"));
 });
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    // fallback local si quieres
+    var dbName = Environment.GetEnvironmentVariable("POSTGRES_DB");
+    var dbUser = Environment.GetEnvironmentVariable("POSTGRES_USER");
+    var dbPass = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD");
+    var dbHost = Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "localhost";
+    var dbPort = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5432";
+
+    connectionString = $"Host={dbHost};Port={dbPort};Database={dbName};Username={dbUser};Password={dbPass}";
+}
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+opt.UseNpgsql(connectionString));
 builder.Services.AddScoped<IHospitalRepository, HospitalRepository>();
 builder.Services.AddScoped<IHospitalService, HospitalService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();  
 
 var app = builder.Build();
 
@@ -62,10 +82,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseHttpsRedirection();
 }
-
-app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
