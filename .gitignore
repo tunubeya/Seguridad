@@ -16,6 +16,4 @@ Release/
 TestResult*/
 *.nupkg
 *.log
-
-Migrations/
 "@ | Out-File -Encoding utf8 .gitignore
